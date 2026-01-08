@@ -1,0 +1,7 @@
+services:
+  convert-pdf:
+    build: .
+    container_name: convert-pdf-api
+    ports:
+      - "2701:2701"
+    restart: unless-stopped
