@@ -17,13 +17,37 @@ class HTMLConvertResponse(BaseModel):
 @app.post("/convert", response_model=HTMLConvertResponse)
 async def convert_html_to_pdf(content: HTMLContent):    
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        # Launch with args to improve font rendering
+        browser = await p.chromium.launch(
+            headless=True,
+            args=[
+                '--disable-web-security',
+                '--font-render-hinting=none',
+                '--enable-font-antialiasing',
+                '--disable-gpu',
+            ]
+        )
+        
         page = await browser.new_page()
 
         await page.set_viewport_size({"width": 1280, "height": 720})
 
         await page.set_content(content.html_content, wait_until="networkidle")
-        # await page.emulate_media(media="print")
+        
+        # Inject CSS to ensure proper font rendering and Windows-like appearance
+        await page.add_style_tag(content="""
+            @media print {
+                * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+            }
+            body {
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+                text-rendering: optimizeLegibility;
+            }
+        """)
 
         scroll_size = await page.evaluate("""
             () => ({
@@ -35,7 +59,10 @@ async def convert_html_to_pdf(content: HTMLContent):
         pdf_bytes = await page.pdf(
             width="13.33in",
             height="7.55in",
-            print_background=content.print_background
+            print_background=content.print_background,
+            prefer_css_page_size=False,
+            display_header_footer=False,
+            scale=1.0
         )
 
         await page.close()
