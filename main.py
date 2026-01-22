@@ -1,5 +1,4 @@
 import base64
-import os
 from playwright.async_api import async_playwright
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -28,14 +27,8 @@ async def convert_html_to_pdf(content: HTMLContent):
 
         scroll_size = await page.evaluate("""
             () => ({
-                width: Math.max(
-                    document.body.scrollWidth,
-                    document.documentElement.scrollWidth
-                ),
-                height: Math.max(
-                    document.body.scrollHeight,
-                    document.documentElement.scrollHeight
-                )
+                width: document.body.scrollWidth,
+                height: document.body.scrollHeight
             })
         """)
 
